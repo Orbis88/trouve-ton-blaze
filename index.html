@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden]{display:none!important}</style>
+<title>Trouve ton blaze</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bowlby+One&family=Caveat:wght@700&family=Figtree:wght@400;500;600;700;800&family=Italiana&family=Metal+Mania&family=Shrikhand&family=Space+Mono:wght@700&family=Syncopate:wght@700&display=swap">
+<style>
+/* Mise en page : rail d'outils à gauche, bandeau de recherche, styles en pastilles, mur d'affiches. */
+:root {
+  --bg: #ffffff;
+  --rail: #f4f2fa;
+  --surface: #ffffff;
+  --line: #dedae8;
+  --fg: #17131f;
+  --muted: #625c70;
+  --violet: #6f2ced;
+  --violet-soft: #ece4ff;
+  --on-violet: #ffffff;
+  --turquoise: #0b8f9c;
+  --hero-a: #d5f6f5;
+  --hero-b: #e3dcff;
+  --hero-c: #fbe1f3;
+  --shadow: 0 6px 24px rgba(50, 25, 110, .14);
+  --star: #b36b00;
+  --ui: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rail-w: 84px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16131d; --rail: #1f1b29; --surface: #241f30; --line: #3c3550;
+    --fg: #f4f1fb; --muted: #aaa3bb; --violet: #a981ff; --violet-soft: #372a5c;
+    --on-violet: #160b2e; --turquoise: #4fd3dc;
+    --hero-a: #11363b; --hero-b: #2b2056; --hero-c: #43203f;
+    --shadow: 0 6px 24px rgba(0, 0, 0, .45); --star: #ffc857;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16131d; --rail: #1f1b29; --surface: #241f30; --line: #3c3550;
+  --fg: #f4f1fb; --muted: #aaa3bb; --violet: #a981ff; --violet-soft: #372a5c;
+  --on-violet: #160b2e; --turquoise: #4fd3dc;
+  --hero-a: #11363b; --hero-b: #2b2056; --hero-c: #43203f;
+  --shadow: 0 6px 24px rgba(0, 0, 0, .45); --star: #ffc857;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 16px/1.5 var(--ui); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
+svg { display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Rail */
+.rail {
+  position: fixed; inset: 0 auto 0 0; z-index: 5;
+  width: calc(var(--rail-w) + env(safe-area-inset-left, 0px));
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 0 16px env(safe-area-inset-left, 0px);
+  background: var(--rail);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.rail button {
+  border: 0; background: none; padding: 4px; width: 76px; border-radius: 12px;
+  display: grid; justify-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+}
+.rail .dot { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; position: relative; }
+.rail button:hover .dot { background: var(--violet-soft); }
+.rail button[aria-current="page"] { color: var(--violet); }
+.rail button[aria-current="page"] .dot { background: var(--violet-soft); }
+.rail .create .dot, .rail .create:hover .dot { background: var(--violet); color: var(--on-violet); border-radius: 50%; }
+.rail .create { color: var(--fg); }
+.badge {
+  position: absolute; top: -2px; right: -4px; min-width: 20px; padding: 0 5px; border-radius: 10px;
+  background: var(--violet); color: var(--on-violet);
+  font-size: 11px; font-weight: 700; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums;
+}
+
+/* Contenu */
+.shell { margin-left: calc(var(--rail-w) + env(safe-area-inset-left, 0px)); }
+.wrap {
+  max-width: 1240px; margin-inline: auto; padding-block: 16px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.hero {
+  border-radius: 20px; padding: 44px 20px 48px; text-align: center;
+  background: linear-gradient(110deg, var(--hero-a), var(--hero-b) 52%, var(--hero-c));
+}
+h1 {
+  margin: 0 0 22px; font-size: clamp(1.9rem, 4.6vw, 3.1rem); font-weight: 800; line-height: 1.1;
+  letter-spacing: -.02em; text-wrap: balance;
+  background: linear-gradient(90deg, var(--turquoise), var(--violet) 60%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.search {
+  display: flex; align-items: center; gap: 10px; max-width: 680px; margin: 0 auto;
+  padding: 6px 6px 6px 18px; border-radius: 16px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.search:focus-within { border-color: var(--violet); }
+.search svg { flex: none; color: var(--muted); }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; padding: 10px 0; }
+.search input::placeholder { color: var(--muted); opacity: 1; }
+.solid {
+  border: 0; border-radius: 11px; padding: 11px 20px; font-weight: 700;
+  background: var(--violet); color: var(--on-violet);
+}
+.solid:hover { filter: brightness(1.08); }
+
+.styles { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 26px 0 34px; }
+.style {
+  border: 0; background: none; width: 92px; padding: 6px 0; border-radius: 14px;
+  display: grid; justify-items: center; gap: 8px; font-size: 13px; font-weight: 600; line-height: 1.2;
+}
+.style i {
+  width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--c); color: #fff; transition: transform .15s;
+}
+.style:hover i { transform: translateY(-3px); }
+.style[aria-pressed="true"] { color: var(--violet); }
+.style[aria-pressed="true"] i { box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--violet); }
+
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+h2 { margin: 0; font-size: 1.3rem; font-weight: 700; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.line { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 8px 14px; font-weight: 600; font-size: 14px; }
+.line:hover { border-color: var(--violet); color: var(--violet); }
+
+.grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 20px 16px; }
+.card { min-width: 0; }
+.poster {
+  position: relative; container-type: inline-size; aspect-ratio: 4 / 3; width: 100%; max-width: 100%;
+  border-radius: 12px; overflow: hidden; background-color: var(--p-bg); color: var(--p-fg);
+  transition: box-shadow .15s, transform .15s;
+}
+.card:hover .poster { box-shadow: var(--shadow); transform: translateY(-2px); }
+.poster .name {
+  position: absolute; inset: 0; display: grid; place-content: center; padding: 6cqw;
+  text-align: center; line-height: 1.08; overflow-wrap: anywhere;
+  border: 0; background: none; color: inherit; width: 100%;
+  user-select: text; -webkit-user-select: text;
+}
+.poster .name:focus-visible { outline-offset: -6px; outline-color: currentColor; }
+.fav {
+  position: absolute; top: 8px; right: 8px; width: 38px; height: 38px; border-radius: 10px; border: 0;
+  display: grid; place-items: center; background: var(--surface); color: var(--fg);
+}
+.fav[aria-pressed="true"] { color: var(--star); }
+.fav[aria-pressed="true"] svg { fill: currentColor; }
+.cap { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 6px; font-size: 14px; }
+.cap span { color: var(--muted); }
+.cap button { border: 0; background: none; padding: 4px 8px; border-radius: 8px; font-weight: 600; color: var(--violet); }
+.cap button:hover { background: var(--violet-soft); }
+
+/* Affiches : une police et un motif par style */
+.s-all { font-family: var(--ui); font-weight: 800; background-image: radial-gradient(circle at 100% 100%, var(--p-x) 0 26%, transparent 26.4%), radial-gradient(circle at 0 0, var(--p-x) 0 18%, transparent 18.4%); }
+.s-rap { font-family: "Anton", Impact, sans-serif; background-image: repeating-linear-gradient(-45deg, var(--p-x) 0 10px, transparent 10px 20px); background-size: 100% 11%; background-position: bottom; background-repeat: no-repeat; }
+.s-electro { font-family: "Syncopate", "Arial Black", sans-serif; font-weight: 700; background-image: linear-gradient(var(--p-x) 1px, transparent 1px), linear-gradient(90deg, var(--p-x) 1px, transparent 1px); background-size: 24px 24px; }
+.s-rock { font-family: "Metal Mania", Impact, fantasy; background-image: repeating-conic-gradient(from 0deg at 50% 100%, var(--p-x) 0 7deg, transparent 7deg 14deg); }
+.s-pop { font-family: "Shrikhand", "Cooper Black", serif; background-image: radial-gradient(var(--p-x) 22%, transparent 23%); background-size: 40px 40px; }
+.s-chill { font-family: "Caveat", "Bradley Hand", cursive; font-weight: 700; background-image: radial-gradient(circle at 50% 112%, var(--p-x) 0 38%, transparent 38.5%); }
+.s-dubtechno { font-family: "Space Mono", Menlo, monospace; font-weight: 700; background-image: repeating-radial-gradient(circle at 88% 100%, transparent 0 9px, var(--p-x) 9px 10px); }
+.s-reggae { font-family: "Bowlby One", "Arial Black", sans-serif; background-image: linear-gradient(#c8262c 33.3%, #f3b51b 33.3% 66.6%, #1c8a45 66.6%); background-size: 100% 15%; background-position: bottom; background-repeat: no-repeat; }
+.s-ambient { font-family: "Italiana", Didot, serif; background-image: radial-gradient(circle at 20% 20%, var(--p-x), transparent 60%), radial-gradient(circle at 85% 90%, var(--p-x), transparent 55%); }
+
+.empty { grid-column: 1 / -1; padding: 48px 16px; border: 2px dashed var(--line); border-radius: 16px; text-align: center; color: var(--muted); }
+
+.toast {
+  position: fixed; z-index: 9; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; width: max-content; max-width: calc(100% - 32px);
+  padding: 10px 18px; border-radius: 12px; background: var(--fg); color: var(--bg); font-weight: 600;
+}
+.toast button { border: 0; background: none; padding: 0; font-weight: 700; text-decoration: underline; }
+
+@media (max-width: 720px) {
+  .rail {
+    inset: auto 0 0 0; width: auto; flex-direction: row; justify-content: space-around; border-top: 1px solid var(--line);
+    padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  }
+  .rail .dot { width: 40px; height: 34px; }
+  .rail .create .dot { width: 34px; }
+  .shell { margin-left: 0; }
+  .wrap { padding-bottom: 120px; }
+  .hero { padding: 30px 14px 32px; }
+  .search { flex-wrap: wrap; padding: 6px 6px 6px 14px; }
+  .search .solid { flex: 1 0 100%; margin-left: -8px; }
+  .styles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .style { width: auto; font-size: 12px; }
+  .style i { width: 50px; height: 50px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .cap span { font-size: 12px; }
+  .toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="Navigation">
+  <button type="button" class="create" id="nav-create"><span class="dot"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Générer</button>
+  <button type="button" id="nav-ideas"><span class="dot"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-6v-6h-4v6H4z"/></svg></span>Idées</button>
+  <button type="button" id="nav-favs"><span class="dot"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></svg><span class="badge" id="badge" hidden></span></span>Favoris</button>
+</nav>
+
+<div class="shell"><main class="wrap">
+  <section id="view-ideas">
+    <div class="hero">
+      <h1>Quel sera ton nom d'artiste ?</h1>
+      <form class="search" id="form">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+        <input id="seed" type="text" aria-label="Ton prénom ou des mots-clés, facultatif" placeholder="Ton prénom, lune, nuit… (facultatif)" autocomplete="off" maxlength="60">
+        <button class="solid" id="go" type="submit">Générer</button>
+      </form>
+    </div>
+    <div class="styles" id="styles" role="group" aria-label="Style de musique"></div>
+    <div class="bar"><h2 id="ideas-title">Idées de noms</h2><button type="button" class="line" id="again">Proposer d'autres noms</button></div>
+    <ul class="grid" id="results"></ul>
+  </section>
+
+  <section id="view-favs" hidden>
+    <div class="bar">
+      <h2>Mes favoris</h2>
+      <div class="row" id="fav-tools"><button type="button" class="line" id="copy-all">Copier la liste</button><button type="button" class="line" id="clear">Tout effacer</button></div>
+    </div>
+    <ul class="grid" id="favorites"></ul>
+  </section>
+</main></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+// ---------- Banques de mots par style ----------
+const WORDS = {
+  rap: {
+    prefixes: ["Lil", "Big", "Young", "MC", "Kid", "King", "Don", "Sad", "OG", "Baby"],
+    adjectives: ["Noir", "Sombre", "Froid", "Gold", "Fou", "Brut", "Sale", "Grand", "Vrai", "Saint"],
+    nouns: ["Béton", "Bitume", "Loup", "Zone", "Ghost", "Flow", "Crâne", "Rafale", "Lion", "Mirage", "Shadow", "Cobra"],
+    suffixes: ["zer", "ito", "ka", "zo", "Z", "OG", "$", "x"],
+  },
+  electro: {
+    prefixes: ["DJ", "Neo", "Sub", "Cyber", "Mono", "Ultra", "Hyper", "Nano"],
+    adjectives: ["Digital", "Neon", "Binary", "Electric", "Analog", "Solar", "Infinite", "Liquid"],
+    nouns: ["Pulse", "Circuit", "Wave", "Signal", "Vector", "Orbit", "Pixel", "Echo", "Frequency", "Machine", "Prism", "Nova"],
+    suffixes: ["tronic", "wave", "matic", "core", "ix", "on", "_404", "X"],
+  },
+  rock: {
+    prefixes: ["The", "Les", "Black", "Dead", "Iron", "Wild"],
+    adjectives: ["Rusty", "Broken", "Electric", "Burning", "Savage", "Hollow", "Velvet", "Rebel"],
+    nouns: ["Wolves", "Riders", "Crows", "Thunder", "Serpents", "Vipers", "Ashes", "Bones", "Kings", "Storm", "Rebels", "Saints"],
+    suffixes: ["ville", "head", "storm", "stone", "fire"],
+  },
+  pop: {
+    prefixes: ["Miss", "Mister", "Lady", "Petit", "Sweet", "Little"],
+    adjectives: ["Pink", "Golden", "Sunny", "Candy", "Crystal", "Velours", "Starry", "Paper"],
+    nouns: ["Heart", "Cherry", "Star", "Dream", "Bloom", "Honey", "Lune", "Sky", "Diamond", "Kiss", "Soleil", "Butterfly"],
+    suffixes: ["ie", "y", "elle", "ette", "a", "ia"],
+  },
+  chill: {
+    prefixes: ["Lo", "Slow", "Soft", "Sleepy", "Quiet", "Dusk"],
+    adjectives: ["Hazy", "Velvet", "Mellow", "Misty", "Faded", "Rainy", "Pale", "Warm"],
+    nouns: ["Tapes", "Clouds", "Coffee", "Garden", "Fog", "Rain", "Moon", "Dunes", "Waves", "Ferns", "Lantern", "Breeze"],
+    suffixes: ["wav", "fi", "beats", "lo", "sun"],
+  },
+  dubtechno: {
+    prefixes: ["Deep", "Grain", "Sub", "Echo", "Mono", "Dub"],
+    adjectives: ["Deep", "Grey", "Hollow", "Distant", "Minimal", "Submerged", "Foggy", "Static"],
+    nouns: ["Hiss", "Delay", "Reverb", "Channel", "Tape", "Depth", "Drift", "Signal", "Plate", "Spiral", "Haze", "Loop"],
+    suffixes: ["dub", "chord", "drift", "static", "tone", " Dub", " Echo"],
+  },
+  reggae: {
+    prefixes: ["Ras", "Jah", "Sister", "Brother", "King", "Sound", "Natty"],
+    adjectives: ["Roots", "Irie", "Natural", "Mighty", "Humble", "Righteous", "Conscious", "Rebel"],
+    nouns: ["Lion", "Riddim", "Zion", "Dread", "Sound", "Vibes", "Warrior", "Prophet", "Mystic", "Selecta", "Skank", "Fyah"],
+    suffixes: [" I", "man", " Dread", " Roots", "ah", " Sound"],
+  },
+  ambient: {
+    prefixes: ["Aether", "Celeste", "Nimbus", "Lumen", "Solace"],
+    adjectives: ["Endless", "Silent", "Glacial", "Ethereal", "Drifting", "Celestial", "Boreal", "Still"],
+    nouns: ["Horizon", "Aurora", "Tides", "Nebula", "Field", "Glacier", "Lumière", "Ocean", "Silence", "Atlas", "Hymn", "Vapor"],
+    suffixes: ["scape", "light", "field", "drone", "sphere"],
+  },
+};
+const STYLES = Object.keys(WORDS);
+
+// Présentation : libellé, couleur de pastille, icône, largeur moyenne d'un caractère (em), palettes [fond, texte, motif]
+const LOOK = {
+  all:       { label: "Tous", c: "#6f2ced", w: .62, icon: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>', pal: [["#efe7ff", "#3a1285", "#d3bfff"]] },
+  rap:       { label: "Rap", c: "#d9352b", w: .5, icon: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', pal: [["#16130f", "#f7c531", "#f7c531"], ["#c9281f", "#fff3e2", "#16130f"], ["#e8e3da", "#16130f", "#c9281f"]] },
+  electro:   { label: "Électro", c: "#0a7ea8", w: .92, icon: '<path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/>', pal: [["#0b1030", "#5ff2e6", "#1d2a63"], ["#2a0b4a", "#ff8ae6", "#4b2278"], ["#e2f24a", "#15180a", "#cbdb33"]] },
+  rock:      { label: "Rock", c: "#3a3540", w: .56, icon: '<path d="M12 21C8 17 4 10 5 6c2-3 12-3 14 0 1 4-3 11-7 15z"/>', pal: [["#1c1a1d", "#f4ece0", "#302b31"], ["#8c1420", "#ffe9d2", "#a2202c"], ["#e2b33c", "#1c1a1d", "#eec45a"]] },
+  pop:       { label: "Pop", c: "#d62f83", w: .66, icon: '<path d="M12 20S4 15 4 9a4 4 0 0 1 8-1.5A4 4 0 0 1 20 9c0 6-8 11-8 11z"/>', pal: [["#ffd0e4", "#b8125f", "#ffc0da"], ["#ff6b57", "#fff6d8", "#ff7c69"], ["#bfe9ff", "#1545a8", "#aee0fb"]] },
+  chill:     { label: "Chill / Lo-fi", c: "#a8612c", w: .46, icon: '<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v2M12 3v2"/>', pal: [["#f5dfc4", "#5b3320", "#f2b183"], ["#34345c", "#ffe6c9", "#6b5a8c"], ["#cfdcc4", "#2c4430", "#f0cf8e"]] },
+  dubtechno: { label: "Dub Techno", c: "#44606b", w: .66, icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>', pal: [["#1f2a2f", "#d8e6e6", "#34454c"], ["#cdd3d2", "#1b2427", "#b9c1c0"], ["#123a44", "#f2d7a6", "#205360"]] },
+  reggae:    { label: "Reggae", c: "#1c8a45", w: .76, icon: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="15" r="3.5"/><circle cx="12" cy="7.5" r="1.5"/>', pal: [["#1b1a12", "#f3b51b", ""], ["#f8e9bf", "#1a5e33", ""], ["#134a2a", "#fbe6a2", ""]] },
+  ambient:   { label: "Ambient", c: "#5867c7", w: .56, icon: '<path d="M3 8c3-3 6-3 9 0s6 3 9 0M3 13c3-3 6-3 9 0s6 3 9 0M3 18c3-3 6-3 9 0s6 3 9 0"/>', pal: [["#dfe7f5", "#263463", "#c0d3f2"], ["#152238", "#e4eefc", "#2d5170"], ["#e6dcee", "#4b2c5e", "#f3cfd8"]] },
+};
+
+// ---------- Génération ----------
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+const clean = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z]/g, "");
+
+function inventWord() {
+  const C = ["b", "k", "l", "m", "n", "r", "s", "t", "v", "z", "x", "j", "d", "sh", "kr"];
+  const V = ["a", "e", "i", "o", "u", "a", "o", "y"];
+  let w = "";
+  const n = Math.random() < 0.8 ? 2 : 3;
+  for (let i = 0; i < n; i++) w += pick(C) + pick(V);
+  if (Math.random() < 0.4) w += pick(["n", "x", "k", "s", "r", "l"]);
+  return cap(w);
+}
+
+function mutateSeed(seed) {
+  const lower = clean(seed).toLowerCase();
+  if (!lower) return inventWord();
+  const half = Math.floor(lower.length / 2);
+  return pick([
+    () => cap([...lower].reverse().join("")),
+    () => cap(lower.slice(0, Math.max(2, Math.ceil(lower.length / 2))) + pick(["x", "z", "o", "ka", "ix", "yo"])),
+    () => cap(lower.replace(/[aeio]/g, (v) => ({ a: "4", e: "3", i: "1", o: "0" })[v])),
+    () => cap(lower.replace(/i/g, "y").replace(/s$/, "z").replace(/c/g, "k")),
+    () => cap(lower) + pick(["", "", "o", "a"]),
+    () => lower.toUpperCase(),
+    () => cap(lower.slice(half) + lower.slice(0, half)),
+  ])();
+}
+
+function generateName(style, seeds) {
+  const st = style === "all" ? pick(STYLES) : style;
+  const W = WORDS[st];
+  const has = seeds.length > 0;
+  const custom = () => (has && Math.random() < 0.75 ? mutateSeed(pick(seeds)) : inventWord());
+  const core = () => (has && Math.random() < 0.7 ? mutateSeed(pick(seeds)) : Math.random() < 0.5 ? inventWord() : pick(W.nouns));
+  let name = pick([
+    () => `${pick(W.prefixes)} ${core()}`,
+    () => `${pick(W.adjectives)} ${pick(W.nouns)}`,
+    () => `${custom()} ${pick(W.nouns)}`,
+    () => `${custom()}${pick(W.suffixes)}`,
+    () => `${pick(W.adjectives)} ${custom()}`,
+    () => custom(),
+  ])();
+  if (st === "electro" && Math.random() < 0.3) name = name.toUpperCase();
+  if (st === "chill" && Math.random() < 0.4) name = name.toLowerCase();
+  if (st === "rock" && Math.random() < 0.3 && !/^(The|Les) /.test(name)) name = "The " + name;
+  return { name, style: st, v: Math.floor(Math.random() * LOOK[st].pal.length) };
+}
+
+function generateBatch(style, seeds, count = 12) {
+  const out = new Map();
+  for (let i = 0; i < 200 && out.size < count; i++) {
+    const n = generateName(style, seeds);
+    if (!out.has(n.name)) out.set(n.name, n);
+  }
+  return [...out.values()];
+}
+
+// ---------- Favoris (dans ce navigateur) ----------
+const FAV_KEY = "artist-name-favorites";
+const normalize = (f) => {
+  if (typeof f === "string") return { name: f, style: "all", v: 0 };
+  if (!f || typeof f.name !== "string") return null;
+  return LOOK[f.style] ? { name: f.name, style: f.style, v: LOOK[f.style].pal[f.v] ? f.v : 0 } : { name: f.name, style: "all", v: 0 };
+};
+let favs = [];
+try { favs = (JSON.parse(localStorage.getItem(FAV_KEY)) || []).map(normalize).filter(Boolean); } catch { favs = []; }
+function saveFavs() { try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch { /* stockage indisponible */ } }
+const isFav = (name) => favs.some((f) => f.name === name);
+
+// ---------- Interface ----------
+const $ = (id) => document.getElementById(id);
+let style = "all";
+let ideas = [];
+let toastTimer;
+
+function toast(msg, action, onAction) {
+  const t = $("toast");
+  t.textContent = msg;
+  if (action) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = action;
+    b.onclick = () => { t.hidden = true; onAction(); };
+    t.append(b);
+  }
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 6000 : 1800);
+}
+
+async function copy(text, done, node) {
+  try { await navigator.clipboard.writeText(text); toast(done); }
+  catch {
+    if (node) getSelection().selectAllChildren(node);
+    toast(node ? "Texte sélectionné, copie-le avec Cmd/Ctrl + C" : "Copie bloquée par le navigateur");
+  }
+}
+
+function toggleFav(item) {
+  favs = isFav(item.name) ? favs.filter((f) => f.name !== item.name) : [item, ...favs];
+  saveFavs(); render();
+}
+
+function card(item) {
+  const L = LOOK[item.style], p = L.pal[item.v];
+  const words = item.name.split(" ");
+  const longest = Math.max(...words.map((w) => w.length));
+  const upper = item.name === item.name.toUpperCase() ? 1.15 : 1;
+  const size = Math.min(19, 82 / (longest * L.w * upper), 46 / words.length);
+
+  const li = document.createElement("li");
+  li.className = "card";
+  const poster = document.createElement("div");
+  poster.className = "poster s-" + item.style;
+  poster.style.cssText = `--p-bg:${p[0]};--p-fg:${p[1]};--p-x:${p[2] || "transparent"}`;
+
+  const name = document.createElement("button");
+  name.type = "button"; name.className = "name"; name.textContent = item.name;
+  name.style.fontFamily = "inherit"; name.style.fontWeight = "inherit"; name.style.fontSize = size.toFixed(2) + "cqw";
+  name.title = "Copier ce nom";
+  name.onclick = () => copy(item.name, `« ${item.name} » copié`, name);
+
+  const fav = document.createElement("button");
+  fav.type = "button"; fav.className = "fav";
+  fav.setAttribute("aria-pressed", String(isFav(item.name)));
+  fav.setAttribute("aria-label", `Favori : ${item.name}`);
+  fav.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></svg>';
+  fav.onclick = () => toggleFav(item);
+  poster.append(name, fav);
+
+  const capEl = document.createElement("div");
+  capEl.className = "cap";
+  const label = document.createElement("span");
+  label.textContent = item.style === "all" ? "Favori" : L.label;
+  const cp = document.createElement("button");
+  cp.type = "button"; cp.textContent = "Copier";
+  cp.onclick = () => copy(item.name, `« ${item.name} » copié`, name);
+  capEl.append(label, cp);
+  li.append(poster, capEl);
+  return li;
+}
+
+function render() {
+  $("results").replaceChildren(...ideas.map(card));
+  if (favs.length) $("favorites").replaceChildren(...favs.map(card));
+  else {
+    const e = document.createElement("li");
+    e.className = "empty"; e.textContent = "Aucun favori pour l'instant. Clique sur l'étoile d'une affiche pour garder un nom.";
+    $("favorites").replaceChildren(e);
+  }
+  $("fav-tools").hidden = !favs.length;
+  $("badge").hidden = !favs.length;
+  $("badge").textContent = favs.length;
+  $("ideas-title").textContent = style === "all" ? "Idées de noms" : `Idées de noms ${LOOK[style].label}`;
+  document.querySelectorAll(".style").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.style === style)));
+}
+
+function run() {
+  const seeds = $("seed").value.split(/[,\s]+/).filter((s) => clean(s));
+  ideas = generateBatch(style, seeds);
+  render();
+}
+
+function show(view) {
+  const f = view === "favoris";
+  $("view-favs").hidden = !f;
+  $("view-ideas").hidden = f;
+  $(f ? "nav-favs" : "nav-ideas").setAttribute("aria-current", "page");
+  $(f ? "nav-ideas" : "nav-favs").removeAttribute("aria-current");
+}
+const go = (view) => { location.hash = view; show(view); };
+
+["all", ...STYLES].forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "style"; b.dataset.style = k;
+  b.style.setProperty("--c", LOOK[k].c);
+  b.innerHTML = `<i><svg width="26" height="26" viewBox="0 0 24 24">${LOOK[k].icon}</svg></i>${LOOK[k].label}`;
+  b.onclick = () => { style = k; run(); };
+  $("styles").append(b);
+});
+
+$("form").addEventListener("submit", (e) => { e.preventDefault(); run(); });
+$("again").onclick = run;
+$("nav-create").onclick = () => { go("idees"); run(); };
+$("nav-ideas").onclick = () => go("idees");
+$("nav-favs").onclick = () => go("favoris");
+$("copy-all").onclick = () => copy(favs.map((f) => f.name).join("\n"), "Liste copiée");
+$("clear").onclick = () => {
+  const before = favs;
+  favs = []; saveFavs(); render();
+  toast("Favoris effacés", "Annuler", () => { favs = before; saveFavs(); render(); });
+};
+addEventListener("hashchange", () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+run();
+</script>
+</body>
+</html>
